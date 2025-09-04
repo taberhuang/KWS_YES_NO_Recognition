@@ -1,0 +1,103 @@
+# Copyright 2025 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@rules_python//sphinxdocs:sphinx_docs_library.bzl", "sphinx_docs_library")
+load("//pw_build:compatibility.bzl", "incompatible_with_mcu")
+load("//pw_build:pw_rust_docs.bzl", "pw_rust_docs")
+
+exports_files(["rustfmt.toml"])
+
+alias(
+    name = "gen_rust_project",
+    actual = "@rules_rust//tools/rust_analyzer:gen_rust_project",
+    tags = ["kernel"],
+    target_compatible_with = select({
+        "@platforms//os:none": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+alias(
+    name = "presubmit",
+    actual = "//pw_kernel/tooling:presubmit",
+)
+
+# When this flag is set to `true`, any crate in the build graph will have its
+# tests enabled. Specifically, Bazel targets may opt into this behavior by
+# checking this flag and emitting `--cfg=test`. If a unit test runner is
+# executed, it will discover any enabled tests.
+#
+# Note that it is possible to run a unit test runner and *not* enable this flag,
+# or to enable this flag when running something other than a unit test runner.
+# This is probably not what you want: in both cases, tests will not be run.
+bool_flag(
+    name = "enable_tests",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "tests_enabled_setting",
+    flag_values = {":enable_tests": "True"},
+)
+
+sphinx_docs_library(
+    name = "docs",
+    srcs = [
+        "design.rst",
+        "docs.rst",
+        "guides.rst",
+        "quickstart.rst",
+        "roadmap.rst",
+        "//pw_kernel/tooling/panic_detector:docs",
+    ],
+    prefix = "pw_kernel/",
+    target_compatible_with = incompatible_with_mcu(),
+    visibility = ["//visibility:public"],
+)
+
+pw_rust_docs(
+    name = "rust_docs",
+
+    # These need to be kept in dependency order for inter-crate linking to
+    # work.
+    #
+    # TODO: b/295227522 - Add support to `rust_docs` to automatically processs
+    # crates in topological order.
+    crates = [
+        "//pw_kernel/lib/pw_status",
+        "//pw_kernel/lib/pw_assert",
+        "//pw_kernel/lib/foreign_box",
+        "//pw_kernel/lib/list",
+        "//pw_kernel/lib/log_if",
+        "//pw_kernel/lib/pw_cast",
+        "//pw_kernel/lib/regs",
+        "//pw_kernel/lib/time",
+        "//pw_kernel/lib/unittest",
+        "//pw_kernel/syscall:syscall_defs",
+        "//pw_kernel/syscall:syscall_user",
+        "//pw_kernel/kernel",
+    ],
+    rustdoc_flags = [
+        "-Z",
+        "unstable-options",
+        "--enable-index-page",
+        # Generates kernel docs with the host arch.  To generate arch specific
+        # docs, use `//pw_kernel/kernel:docs` with the correct `--config`
+        "--cfg=feature=\"arch_host\"",
+        "--cfg=feature=\"std_panic_handler\"",
+    ],
+    tags = ["kernel"],
+    target_compatible_with = incompatible_with_mcu(),
+)

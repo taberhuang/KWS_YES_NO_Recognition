@@ -1,0 +1,122 @@
+# Copyright 2025 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+build:k_common -c opt
+build:k_common --build_tag_filters=-do_not_build,-kernel_doc_test
+test:k_common --test_tag_filters=-integration,-do_not_build,-do_not_run_test,-kernel_doc_test
+test:k_common --@pigweed//pw_kernel:enable_tests=true
+
+common:k_doctest --config=k_common
+common:k_doctest --platforms=//pw_kernel/target/host:doctest
+build:k_doctest --build_tag_filters=-do_not_build,-kernel_panic_test
+test:k_doctest --test_tag_filters=-integration,-do_not_build,-do_not_run_test,-kernel_panic_test
+
+# Lint configuration
+# ==================
+common:k_lint --config=k_common
+common:k_lint --platforms=//pw_kernel/target/host:host
+
+# Enable clippy lints
+build:k_lint --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build:k_lint --output_groups=+clippy_checks
+build:k_lint --@rules_rust//rust/settings:clippy_flags="\
+-Dclippy::cast_lossless,\
+-Dclippy::cast_possible_truncation,\
+-Dclippy::cast_possible_wrap,\
+-Dclippy::cast_precision_loss,\
+-Dclippy::cast_sign_loss,\
+-Dclippy::char_lit_as_u8,\
+-Dclippy::fn_to_numeric_cast,\
+-Dclippy::fn_to_numeric_cast_with_truncation,\
+-Dclippy::ptr_as_ptr,-Dclippy::unnecessary_cast,\
+-Dinvalid_reference_casting,\
+-Dclippy::alloc_instead_of_core,\
+-Dclippy::as_underscore,\
+-Dclippy::assertions_on_result_states,\
+-Dclippy::correctness,\
+-Dclippy::dbg_macro,\
+-Dclippy::decimal_literal_representation,\
+-Dclippy::double_must_use,\
+-Dclippy::missing_safety_doc,\
+-Dclippy::must_use_candidate,\
+-Dclippy::must_use_unit,\
+-Dclippy::obfuscated_if_else,\
+-Dclippy::perf,\
+-Dclippy::print_stdout,\
+-Dclippy::return_self_not_must_use,\
+-Dclippy::std_instead_of_core,\
+-Dclippy::style,\
+-Dclippy::suspicious,\
+-Dclippy::unimplemented,\
+-Dclippy::unnested_or_patterns,\
+-Aclippy::new_without_default"
+
+# TODO: Deny the following lints:
+# - clippy::use_debug
+# - clippy::unwrap_used (but only in prod)
+# - clippy::todo
+# - clippy::undocumented_unsafe_blocks
+# - clippy::indexing_slicing
+
+# Enforce rustfmt formatting
+build:k_lint --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
+build:k_lint --@rules_rust//rust/settings:rustfmt.toml=//pw_kernel:rustfmt.toml
+build:k_lint --output_groups=+rustfmt_checks
+
+# Host target configuration
+# ===========================
+common:k_host --config=k_common
+common:k_host --platforms=//pw_kernel/target/host:host
+
+# TODO: davidroth - Each config also sets the platform.  This isn't strictly
+# necessary when building system images as it will transition to the correct
+# platform. This would however break the rust_analyzer gen_rust_project flow
+# as it currently assumes the platform is associated with the config.
+# In the future we should update the tooling to not require a platform and
+# potentially even a config to be set when building the system image.
+
+# QEMU mps2-an505 target configuration
+# =======================================
+common:k_qemu_mps2_an505 --config=k_common
+common:k_qemu_mps2_an505 --platforms=//pw_kernel/target/mps2_an505:mps2_an505
+run:k_qemu_mps2_an505 --run_under="//pw_kernel/tooling:qemu \
+  --cpu cortex-m33 \
+  --machine mps2-an505 \
+  --semihosting \
+  --image "
+test:k_qemu_mps2_an505 --run_under="//pw_kernel/tooling:qemu \
+  --cpu cortex-m33 \
+  --machine mps2-an505 \
+  --semihosting \
+  --image "
+
+# QEMU virt riscv32 target configuration
+# =======================================
+common:k_qemu_virt_riscv32 --config=k_common
+common:k_qemu_virt_riscv32 --platforms=//pw_kernel/target/qemu_virt_riscv32:qemu_virt_riscv32
+run:k_qemu_virt_riscv32 --run_under="//pw_kernel/tooling:qemu \
+  --cpu rv32 \
+  --machine virt \
+  --image "
+test:k_qemu_virt_riscv32 --run_under="//pw_kernel/tooling:qemu \
+  --cpu rv32 \
+  --machine virt \
+  --semihosting \
+  --image "
+
+# RP2350 target configuration
+# =======================================
+common:k_rp2350 --config=k_common
+common:k_rp2350 --platforms=//pw_kernel/target/pw_rp2350
+run:k_rp2350 --run_under="//pw_kernel/tooling:serial_detokenizer "

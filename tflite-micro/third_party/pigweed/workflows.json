@@ -1,0 +1,126 @@
+{
+  "configs": [
+    {
+      "name": "bazel_default",
+      "description": "Default bazel build configuration (usually host)",
+      "build_type": "bazel",
+      "args": [],
+      "env": {}
+    }
+  ],
+  "builds": [
+    {
+      "name": "all_host",
+      "use_config": "bazel_default",
+      "targets": [
+        "//..."
+      ]
+    },
+    {
+      "name": "all_host_cpp20",
+      "build_config": {
+        "name": "bazel_default_cpp20",
+        "description": "Host C++20 build",
+        "build_type": "bazel",
+        "args": [
+          "--//pw_toolchain/cc:cxx_standard=20"
+        ]
+      },
+      "targets": [
+        "//..."
+      ]
+    },
+    {
+      "name": "docs",
+      "use_config": "bazel_default",
+      "targets": [
+        "//docs"
+      ]
+    },
+    {
+      "name": "build_rp2040_tests",
+      "build_config": {
+        "name": "pico_rp2040",
+        "description": "Default Pi Pico build (rp2040)",
+        "build_type": "bazel",
+        "args": [
+          "--config=rp2040"
+        ],
+        "driver_options": {
+          "@type": "pw.build.proto.BazelDriverOptions",
+          "no_test": true
+        }
+      },
+      "targets": [
+        "//..."
+      ]
+    },
+    {
+      "name": "build_rp2350_tests",
+      "build_config": {
+        "name": "pico_rp2350",
+        "description": "Default Pi Pico build (rp2350)",
+        "build_type": "bazel",
+        "args": [
+          "--config=rp2350"
+        ],
+        "driver_options": {
+          "@type": "pw.build.proto.BazelDriverOptions",
+          "no_test": true
+        }
+      },
+      "targets": [
+        "//..."
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "change",
+      "description": "Work with Gerrit changes and Git commits.",
+      "use_config": "bazel_default",
+      "target": "@pigweed//:change",
+      "type": "ANALYZER"
+    },
+    {
+      "name": "format",
+      "description": "Find and fix code formatting issues",
+      "use_config": "bazel_default",
+      "analyzer_friendly_args": [
+        "--check"
+      ],
+      "target": "@pigweed//:format"
+    },
+    {
+      "name": "pw_presubmit_checks",
+      "description": "Run checks that use the pw_presubmit framework",
+      "use_config": "bazel_default",
+      "target": "@pigweed//:presubmit",
+      "type": "ANALYZER"
+    },
+    {
+      "name": "push",
+      "description": "Upload the current git branch to Gerrit for review.",
+      "use_config": "bazel_default",
+      "target": "@pigweed//:push",
+      "type": "ANALYZER"
+    },
+    {
+      "name": "review",
+      "description": "Review the commit at HEAD using Gemini",
+      "use_config": "bazel_default",
+      "target": "@pigweed//:review",
+      "type": "ANALYZER"
+    }
+  ],
+  "groups": [
+    {
+      "name": "presubmit",
+      "description": "Quick presubmit for validating code changes locally",
+      "analyzers": [
+        "format",
+        "pw_presubmit_checks"
+      ]
+    }
+  ]
+}

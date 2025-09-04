@@ -1,0 +1,634 @@
+# Copyright 2019 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+import("//build_overrides/pigweed.gni")
+
+import("$dir_pw_async2/backend.gni")
+import("$dir_pw_bloat/bloat.gni")
+import("$dir_pw_build/module_config.gni")
+import("$dir_pw_build/target_types.gni")
+import("$dir_pw_chrono/backend.gni")
+import("$dir_pw_sync/backend.gni")
+import("$dir_pw_toolchain/traits.gni")
+import("$dir_pw_unit_test/test.gni")
+
+# Module configuration
+
+declare_args() {
+  # The build target that overrides the default configuration options for this
+  # module. This should point to a source set that provides defines through a
+  # public config (which may -include a file or add defines directly).
+  pw_containers_CONFIG = pw_build_DEFAULT_MODULE_CONFIG
+}
+
+config("public_include_path") {
+  include_dirs = [ "public" ]
+  visibility = [ ":*" ]
+}
+
+pw_source_set("config") {
+  public = [ "public/pw_containers/config.h" ]
+  public_configs = [ ":public_include_path" ]
+  public_deps = [ pw_containers_CONFIG ]
+}
+
+# Libraries
+
+group("pw_containers") {
+  public_deps = [
+    ":algorithm",
+    ":flat_map",
+    ":inline_deque",
+    ":inline_queue",
+    ":intrusive_list",
+    ":vector",
+  ]
+}
+
+pw_source_set("algorithm") {
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_containers/algorithm.h",
+    "public/pw_containers/internal/algorithm_internal.h",
+  ]
+}
+
+pw_source_set("filtered_view") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/filtered_view.h" ]
+  public_deps = [
+    dir_pw_assert,
+    dir_pw_preprocessor,
+  ]
+}
+
+pw_source_set("flat_map") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/flat_map.h" ]
+  public_deps = [ "$dir_pw_assert:assert" ]
+}
+
+pw_source_set("common") {
+  public = [ "public/pw_containers/internal/traits.h" ]
+  public_configs = [ ":public_include_path" ]
+  visibility = [ "$dir_pigweed/*" ]
+}
+
+pw_source_set("deque_common") {
+  public = [
+    "public/pw_containers/internal/count_and_capacity.h",
+    "public/pw_containers/internal/deque_iterator.h",
+    "public/pw_containers/internal/generic_deque.h",
+  ]
+  public_configs = [ ":public_include_path" ]
+  visibility = [ ":*" ]
+  public_deps = [
+    ":common",
+    "$dir_pw_numeric:checked_arithmetic",
+    dir_pw_assert,
+    dir_pw_span,
+  ]
+}
+
+pw_source_set("async_count_and_capacity") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/internal/async_count_and_capacity.h" ]
+  visibility = [ ":*" ]
+  public_deps = [
+    ":deque_common",
+    "$dir_pw_async2:dispatcher",
+    "$dir_pw_async2:poll",
+    "$dir_pw_async2:waker_queue",
+  ]
+}
+
+pw_source_set("dynamic_deque") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/dynamic_deque.h" ]
+  public_deps = [
+    ":deque_common",
+    "$dir_pw_allocator:allocator",
+    "$dir_pw_numeric:saturating_arithmetic",
+  ]
+}
+
+pw_source_set("inline_deque") {
+  public_configs = [ ":public_include_path" ]
+  public_deps = [
+    ":deque_common",
+    ":raw_storage",
+    "$dir_pw_toolchain:constexpr_tag",
+    dir_pw_assert,
+  ]
+  public = [ "public/pw_containers/inline_deque.h" ]
+}
+
+pw_source_set("inline_async_deque") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/inline_async_deque.h" ]
+  public_deps = [
+    ":async_count_and_capacity",
+    ":inline_deque",
+  ]
+}
+
+pw_source_set("queue_common") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/internal/generic_queue.h" ]
+  visibility = [ ":*" ]
+  public_deps = [ ":deque_common" ]
+}
+
+pw_source_set("dynamic_queue") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/dynamic_queue.h" ]
+  public_deps = [
+    ":dynamic_deque",
+    ":queue_common",
+  ]
+}
+
+pw_source_set("inline_queue") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/inline_queue.h" ]
+  public_deps = [
+    ":inline_deque",
+    ":queue_common",
+  ]
+}
+
+pw_source_set("inline_async_queue") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/inline_async_queue.h" ]
+  public_deps = [
+    ":async_count_and_capacity",
+    ":inline_async_deque",
+    ":inline_queue",
+    ":queue_common",
+  ]
+}
+
+pw_source_set("iterator") {
+  public_configs = [ ":public_include_path" ]
+  public_deps = [ dir_pw_polyfill ]
+  public = [
+    "public/pw_containers/iterator.h",
+    "public/pw_containers/ptr_iterator.h",
+  ]
+}
+
+pw_source_set("raw_storage") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/internal/raw_storage.h" ]
+  visibility = [ ":*" ]
+}
+
+pw_source_set("test_helpers") {
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_containers/internal/container_tests.h",
+    "public/pw_containers/internal/test_helpers.h",
+  ]
+  sources = [ "test_helpers.cc" ]
+  public_deps = [
+    ":algorithm",
+    dir_pw_unit_test,
+  ]
+  deps = [ dir_pw_assert ]
+  visibility = [ ":*" ]
+  testonly = pw_unit_test_TESTONLY
+}
+
+pw_source_set("to_array") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/to_array.h" ]
+}
+
+pw_source_set("inline_var_len_entry_queue") {
+  public_configs = [ ":public_include_path" ]
+  public_deps = [
+    "$dir_pw_toolchain:constexpr_tag",
+    dir_pw_varint,
+  ]
+  deps = [ dir_pw_assert ]
+  public = [ "public/pw_containers/inline_var_len_entry_queue.h" ]
+  sources = [ "inline_var_len_entry_queue.c" ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_source_set("vector") {
+  public_configs = [ ":public_include_path" ]
+  public_deps = [
+    "$dir_pw_toolchain:constexpr_tag",
+    dir_pw_assert,
+    dir_pw_preprocessor,
+  ]
+  public = [ "public/pw_containers/vector.h" ]
+}
+
+pw_source_set("dynamic_vector") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/dynamic_vector.h" ]
+  public_deps = [
+    ":dynamic_deque",
+    ":iterator",
+    "$dir_pw_allocator:allocator",
+  ]
+}
+
+pw_source_set("wrapped_iterator") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/wrapped_iterator.h" ]
+}
+
+pw_source_set("intrusive_item") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/internal/intrusive_item.h" ]
+  sources = [ "intrusive_item.cc" ]
+  deps = [ dir_pw_assert ]
+}
+
+pw_source_set("intrusive_list_common") {
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_containers/internal/intrusive_list.h",
+    "public/pw_containers/internal/intrusive_list_item.h",
+    "public/pw_containers/internal/intrusive_list_iterator.h",
+  ]
+  public_deps = [ ":intrusive_item" ]
+}
+
+pw_source_set("intrusive_forward_list") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_forward_list.h" ]
+  public_deps = [
+    ":config",
+    ":intrusive_list_common",
+  ]
+}
+
+pw_source_set("intrusive_list") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_list.h" ]
+  public_deps = [
+    ":config",
+    ":intrusive_list_common",
+    ":legacy_intrusive_list",
+  ]
+}
+
+pw_source_set("legacy_intrusive_list") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/internal/legacy_intrusive_list.h" ]
+  public_deps = [ ":intrusive_forward_list" ]
+  visibility = [ "./*" ]
+}
+
+pw_source_set("aa_tree") {
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_containers/internal/aa_tree.h",
+    "public/pw_containers/internal/aa_tree_item.h",
+    "public/pw_containers/internal/aa_tree_iterator.h",
+  ]
+  public_deps = [
+    ":intrusive_item",
+    "$dir_pw_bytes:packed_ptr",
+    dir_pw_assert,
+    dir_pw_function,
+  ]
+  sources = [
+    "aa_tree.cc",
+    "aa_tree_item.cc",
+  ]
+  visibility = [ "./*" ]
+}
+
+pw_source_set("intrusive_map") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_map.h" ]
+  public_deps = [ ":aa_tree" ]
+}
+
+pw_source_set("intrusive_multimap") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_multimap.h" ]
+  public_deps = [ ":aa_tree" ]
+}
+
+pw_source_set("intrusive_set") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_set.h" ]
+  public_deps = [ ":aa_tree" ]
+}
+
+pw_source_set("intrusive_multiset") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_containers/intrusive_multiset.h" ]
+  public_deps = [ ":aa_tree" ]
+}
+
+pw_test_group("tests") {
+  tests = [
+    ":algorithm_test",
+    ":filtered_view_test",
+    ":flat_map_test",
+    ":dynamic_deque_test",
+    ":dynamic_queue_test",
+    ":inline_async_deque_test",
+    ":inline_async_queue_test",
+    ":inline_deque_test",
+    ":inline_queue_test",
+    ":intrusive_forward_list_test",
+    ":intrusive_item_test",
+    ":intrusive_list_test",
+    ":intrusive_map_test",
+    ":intrusive_multimap_test",
+    ":intrusive_set_test",
+    ":intrusive_multiset_test",
+    ":raw_storage_test",
+    ":to_array_test",
+    ":inline_var_len_entry_queue_test",
+    ":vector_test",
+    ":dynamic_vector_test",
+    ":wrapped_iterator_test",
+    ":ptr_iterator_test",
+  ]
+  group_deps = [ "examples" ]
+}
+
+pw_test("algorithm_test") {
+  sources = [ "algorithm_test.cc" ]
+  deps = [
+    ":algorithm",
+    ":flat_map",
+    ":intrusive_list",
+    ":vector",
+    "$dir_pw_unit_test:constexpr",
+    dir_pw_span,
+  ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("filtered_view_test") {
+  sources = [ "filtered_view_test.cc" ]
+  deps = [
+    ":algorithm",
+    ":filtered_view",
+    ":flat_map",
+    ":intrusive_list",
+    dir_pw_span,
+  ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("flat_map_test") {
+  sources = [ "flat_map_test.cc" ]
+  deps = [
+    ":flat_map",
+    dir_pw_polyfill,
+  ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("dynamic_deque_test") {
+  sources = [ "dynamic_deque_test.cc" ]
+  deps = [
+    ":dynamic_deque",
+    ":test_helpers",
+    "$dir_pw_allocator:null_allocator",
+    "$dir_pw_allocator:testing",
+    "$dir_pw_containers:algorithm",
+    dir_pw_polyfill,
+  ]
+}
+
+pw_test("inline_deque_test") {
+  sources = [ "inline_deque_test.cc" ]
+  deps = [
+    ":inline_deque",
+    ":test_helpers",
+  ]
+  negative_compilation_tests = true
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("inline_async_deque_test") {
+  enable_if = pw_async2_DISPATCHER_BACKEND != "" &&
+              pw_chrono_SYSTEM_CLOCK_BACKEND != "" &&
+              pw_sync_INTERRUPT_SPIN_LOCK_BACKEND != "" &&
+              pw_sync_TIMED_THREAD_NOTIFICATION_BACKEND != ""
+  sources = [ "inline_async_deque_test.cc" ]
+  deps = [
+    ":inline_async_deque",
+    ":test_helpers",
+    "$dir_pw_async2:dispatcher",
+    "$dir_pw_async2:pend_func_task",
+    "$dir_pw_async2:poll",
+    "$dir_pw_status",
+  ]
+}
+
+pw_test("dynamic_queue_test") {
+  sources = [ "dynamic_queue_test.cc" ]
+  deps = [
+    ":dynamic_queue",
+    ":test_helpers",
+    "$dir_pw_allocator:testing",
+  ]
+}
+
+pw_test("inline_queue_test") {
+  sources = [ "inline_queue_test.cc" ]
+  deps = [
+    ":algorithm",
+    ":inline_queue",
+    ":test_helpers",
+  ]
+  negative_compilation_tests = true
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("inline_async_queue_test") {
+  enable_if = pw_async2_DISPATCHER_BACKEND != "" &&
+              pw_chrono_SYSTEM_CLOCK_BACKEND != "" &&
+              pw_sync_INTERRUPT_SPIN_LOCK_BACKEND != "" &&
+              pw_sync_TIMED_THREAD_NOTIFICATION_BACKEND != ""
+  sources = [ "inline_async_queue_test.cc" ]
+  deps = [
+    ":inline_async_queue",
+    "$dir_pw_async2:dispatcher",
+    "$dir_pw_async2:pend_func_task",
+    "$dir_pw_async2:poll",
+    dir_pw_status,
+  ]
+}
+
+pw_test("raw_storage_test") {
+  sources = [ "raw_storage_test.cc" ]
+  deps = [
+    ":raw_storage",
+    ":test_helpers",
+  ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("to_array_test") {
+  sources = [ "to_array_test.cc" ]
+  deps = [ ":to_array" ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("inline_var_len_entry_queue_test") {
+  sources = [
+    "inline_var_len_entry_queue_test.cc",
+    "pw_containers_private/inline_var_len_entry_queue_test_oracle.h",
+  ]
+  deps = [
+    ":inline_var_len_entry_queue",
+    dir_pw_assert,
+    dir_pw_bytes,
+  ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("vector_test") {
+  sources = [ "vector_test.cc" ]
+  deps = [
+    ":test_helpers",
+    ":vector",
+  ]
+
+  negative_compilation_tests = true
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("dynamic_vector_test") {
+  sources = [ "dynamic_vector_test.cc" ]
+  deps = [
+    ":dynamic_vector",
+    ":test_helpers",
+    "$dir_pw_allocator:testing",
+  ]
+}
+
+pw_test("wrapped_iterator_test") {
+  sources = [ "wrapped_iterator_test.cc" ]
+  deps = [ ":wrapped_iterator" ]
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("ptr_iterator_test") {
+  sources = [ "ptr_iterator_test.cc" ]
+  deps = [ ":iterator" ]
+}
+
+pw_test("intrusive_forward_list_test") {
+  sources = [ "intrusive_forward_list_test.cc" ]
+  deps = [
+    ":intrusive_forward_list",
+    ":vector",
+  ]
+  negative_compilation_tests = true
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("intrusive_list_test") {
+  sources = [ "intrusive_list_test.cc" ]
+  deps = [
+    ":intrusive_list",
+    ":vector",
+  ]
+  negative_compilation_tests = true
+
+  # TODO: b/259746255 - Remove this when everything compiles with -Wconversion.
+  configs = [ "$dir_pw_build:conversion_warnings" ]
+}
+
+pw_test("intrusive_map_test") {
+  sources = [ "intrusive_map_test.cc" ]
+  deps = [
+    ":intrusive_map",
+    ":intrusive_multimap",
+    dir_pw_span,
+  ]
+  negative_compilation_tests = true
+}
+
+pw_test("intrusive_multimap_test") {
+  sources = [ "intrusive_multimap_test.cc" ]
+  deps = [
+    ":intrusive_map",
+    ":intrusive_multimap",
+    dir_pw_span,
+  ]
+  negative_compilation_tests = true
+}
+
+pw_test("intrusive_set_test") {
+  sources = [ "intrusive_set_test.cc" ]
+  deps = [
+    ":intrusive_multiset",
+    ":intrusive_set",
+    dir_pw_span,
+  ]
+  negative_compilation_tests = true
+}
+
+pw_test("intrusive_multiset_test") {
+  sources = [ "intrusive_multiset_test.cc" ]
+  deps = [
+    ":intrusive_multiset",
+    ":intrusive_set",
+    dir_pw_span,
+  ]
+  negative_compilation_tests = true
+}
+
+pw_test("intrusive_item_test") {
+  sources = [ "intrusive_item_test.cc" ]
+  deps = [
+    ":intrusive_forward_list",
+    ":intrusive_list",
+    ":intrusive_map",
+    ":intrusive_multimap",
+    ":intrusive_multiset",
+    ":intrusive_set",
+  ]
+  negative_compilation_tests = true
+}

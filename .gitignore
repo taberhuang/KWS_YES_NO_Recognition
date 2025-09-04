@@ -1,0 +1,247 @@
+# TensorFlow Lite Micro KWS Project .gitignore
+
+# Build directories and outputs
+build_cmake/
+build/
+out/
+Release/
+Debug/
+x64/
+x86/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Makefile
+*.ninja
+.ninja_deps
+.ninja_log
+build.ninja
+
+# Visual Studio / MSVC
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.tlog
+*.idb
+*.pdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tmp
+*.tmp_proj
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+
+# MinGW / GCC
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dll
+*.dylib
+*.la
+*.a
+*.lai
+#*.exe
+*.out
+*.app
+
+# Compiler and linker intermediate files
+*.d
+*.dep
+*.map
+*.lst
+*.sym
+
+# Code::Blocks
+*.layout
+*.cbp
+*.depend
+
+# Qt Creator
+CMakeLists.txt.user*
+
+# CLion
+.idea/
+cmake-build-*/
+
+# Temporary and backup files
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Audio test files (optional - comment out if you want to include them)
+# *.wav
+# *.mp3
+# *.flac
+# *.aac
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Model files (if you want to exclude large model files)
+# *.tflite
+# *.pb
+# *.h5
+# *.onnx
+
+# Generated model data files (if regenerated frequently)
+# *_model_data.c
+# *_model_data.h
+
+# Documentation builds
+docs/_build/
+site/
+
+# Testing and coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archives and packages
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# IDE and editor files
+.vscode/
+*.code-workspace
+.sublime-project
+.sublime-workspace
+*.kate-swp
+.*.swp
+.*.swo
+
+# Windows system files
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux system files
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Log files
+*.log
+logs/
+
+# Temporary directories
+tmp/
+temp/
+
+# Generated documentation
+doxygen/
+doc/html/
+doc/latex/
+
+# Bazel (if using Bazel build system)
+bazel-*
+.bazelrc.user
+
+# Conan package manager
+conanfile.txt.orig
+conandata.yml.orig
+
+# Custom project-specific ignores
+# Add any project-specific files or directories you want to ignore
+
+# Keep important configuration files
+!CMakeLists.txt
+!build_cmake.bat
+!*.md
+!*.h
+!*.c
+!*.cpp
+
+# Keep model data files (these are essential for the project)
+!*_model_data.c
+!*_model_data.h
+!model_settings.h
+
+# Keep test audio files (essential for testing)
+!yes_1000ms.wav
+!no_1000ms.wav
+
+.codebuddy/

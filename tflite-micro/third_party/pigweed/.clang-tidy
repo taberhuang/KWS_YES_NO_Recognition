@@ -1,0 +1,88 @@
+# Copyright 2024 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+---
+UseColor: true
+
+# DOCSTAG: [clang-tidy-checks]
+Checks: >
+    bugprone-argument-comment,
+    bugprone-assert-side-effect,
+    bugprone-bool-pointer-implicit-conversion,
+    bugprone-dangling-handle,
+    bugprone-fold-init-type,
+    bugprone-forwarding-reference-overload,
+    bugprone-forward-declaration-namespace,
+    bugprone-inaccurate-erase,
+    bugprone-macro-repeated-side-effects,
+    bugprone-move-forwarding-reference,
+    bugprone-multiple-statement-macro,
+    bugprone-string-constructor,
+    bugprone-suspicious-memset-usage,
+    bugprone-swapped-arguments,
+    bugprone-undefined-memory-manipulation,
+    bugprone-undelegated-constructor,
+    bugprone-unused-raii,
+    bugprone-use-after-move,
+    clang-diagnostic-*,
+    -clang-analyzer-*,
+    darwin-avoid-spinlock,
+    google-build-explicit-make-pair,
+    google-build-namespaces,
+    google-default-arguments,
+    google-global-names-in-headers,
+    google-readability-function-size,
+    google-readability-namespace-comments,
+    google-runtime-operator,
+    misc-static-assert,
+    misc-unconventional-assign-operator,
+    misc-unused-using-decls,
+    modernize-avoid-bind,
+    modernize-deprecated-ios-base-aliases,
+    modernize-make-shared,
+    modernize-make-unique,
+    modernize-pass-by-value,
+    modernize-replace-auto-ptr,
+    modernize-replace-disallow-copy-and-assign-macro,
+    modernize-replace-random-shuffle,
+    modernize-shrink-to-fit,
+    modernize-unary-static-assert,
+    modernize-use-bool-literals,
+    modernize-use-emplace,
+    modernize-use-equals-delete,
+    modernize-use-noexcept,
+    modernize-use-nullptr,
+    modernize-use-override,
+    modernize-use-transparent-functors,
+    modernize-use-uncaught-exceptions,
+    performance-faster-string-find,
+    performance-for-range-copy,
+    performance-implicit-conversion-in-loop,
+    performance-inefficient-algorithm,
+    performance-inefficient-vector-operation,
+    performance-move-constructor-init,
+    readability-container-size-empty,
+    readability-inconsistent-declaration-parameter-name,
+    readability-misleading-indentation,
+    readability-redundant-control-flow,
+    readability-redundant-smartptr-get,
+    readability-string-compare,
+# DOCSTAG: [clang-tidy-checks]
+WarningsAsErrors: >
+    *,
+    -clang-diagnostic-deprecated-declarations,
+    -clang-diagnostic-unused-command-line-argument
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: 'external/.*'
+...

@@ -1,0 +1,467 @@
+# Copyright 2023 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_python//sphinxdocs:sphinx_docs_library.bzl", "sphinx_docs_library")
+load("//pw_build:compatibility.bzl", "incompatible_with_mcu")
+load("//pw_unit_test:pw_cc_test.bzl", "pw_cc_test")
+
+package(
+    default_visibility = ["//visibility:public"],
+    features = [
+        "-layering_check",
+        "-ctad_warnings",
+    ],
+)
+
+licenses(["notice"])
+
+cc_library(
+    name = "pw_multibuf",
+    hdrs = ["public/pw_multibuf/multibuf.h"],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        ":multibuf_v1",
+    ],
+)
+
+label_flag(
+    name = "config_override",
+    build_setting_default = "//pw_build:default_module_config",
+)
+
+cc_library(
+    name = "config",
+    hdrs = ["public/pw_multibuf/config.h"],
+    strip_include_prefix = "public",
+    deps = [":config_override"],
+)
+
+cc_library(
+    name = "v1_test_config",
+    defines = [
+        "PW_MULTIBUF_VERSION=1",
+        "PW_MULTIBUF_WARN_DEPRECATED=0",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cc_library(
+    name = "chunk",
+    srcs = ["chunk.cc"],
+    hdrs = ["public/pw_multibuf/chunk.h"],
+    implementation_deps = ["//pw_assert:check"],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        "//pw_assert:assert",
+        "//pw_bytes",
+        "//pw_preprocessor",
+        "//pw_span",
+        "//pw_sync:mutex",
+    ],
+)
+
+cc_library(
+    name = "header_chunk_region_tracker",
+    hdrs = ["public/pw_multibuf/header_chunk_region_tracker.h"],
+    strip_include_prefix = "public",
+    deps = [
+        ":chunk",
+        ":config",
+        "//pw_allocator:allocator",
+        "//pw_bytes",
+    ],
+)
+
+cc_library(
+    name = "single_chunk_region_tracker",
+    hdrs = ["public/pw_multibuf/single_chunk_region_tracker.h"],
+    strip_include_prefix = "public",
+    deps = [
+        ":chunk",
+        ":config",
+        "//pw_assert:assert",
+        "//pw_bytes",
+    ],
+)
+
+pw_cc_test(
+    name = "chunk_test",
+    srcs = ["chunk_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":chunk",
+        ":header_chunk_region_tracker",
+        ":v1_test_config",
+        "//pw_allocator:testing",
+    ],
+)
+
+pw_cc_test(
+    name = "header_chunk_region_tracker_test",
+    srcs = ["header_chunk_region_tracker_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":chunk",
+        ":header_chunk_region_tracker",
+        ":v1_test_config",
+        "//pw_allocator:testing",
+        "//pw_status",
+    ],
+)
+
+pw_cc_test(
+    name = "single_chunk_region_tracker_test",
+    srcs = ["single_chunk_region_tracker_test.cc"],
+    # TODO: b/260624583 - Fix this for rp2040
+    target_compatible_with = select({
+        "//pw_build/constraints/chipset:rp2040": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":chunk",
+        ":single_chunk_region_tracker",
+        ":v1_test_config",
+    ],
+)
+
+cc_library(
+    name = "multibuf_v1",
+    srcs = ["multibuf_v1.cc"],
+    hdrs = ["public/pw_multibuf/multibuf_v1.h"],
+    implementation_deps = ["//pw_assert:check"],
+    strip_include_prefix = "public",
+    deps = [
+        ":chunk",
+        ":config",
+        "//pw_preprocessor",
+        "//pw_status",
+    ],
+)
+
+pw_cc_test(
+    name = "multibuf_v1_test",
+    srcs = ["multibuf_v1_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":internal_test_utils",
+        ":multibuf_v1",
+        ":v1_test_config",
+        "//pw_assert:check",
+        "//pw_bytes",
+    ],
+)
+
+cc_library(
+    name = "allocator",
+    srcs = [
+        "allocator.cc",
+    ],
+    hdrs = [
+        "public/pw_multibuf/allocator.h",
+    ],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        ":multibuf_v1",
+        "//pw_containers:intrusive_forward_list",
+        "//pw_result",
+        "//pw_sync:interrupt_spin_lock",
+    ],
+)
+
+cc_library(
+    name = "allocator_async",
+    srcs = [
+        "allocator_async.cc",
+    ],
+    hdrs = [
+        "public/pw_multibuf/allocator_async.h",
+    ],
+    features = ["-conversion_warnings"],
+    implementation_deps = ["//pw_assert:check"],
+    strip_include_prefix = "public",
+    deps = [
+        ":allocator",
+        ":config",
+        "//pw_async2:dispatcher",
+        "//pw_async2:poll",
+    ],
+)
+
+# TODO: https://pwbug.dev/384583239 - Split async into its own test.
+pw_cc_test(
+    name = "allocator_test",
+    srcs = ["allocator_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":allocator",
+        ":allocator_async",
+        ":v1_test_config",
+        "//pw_async2:dispatcher",
+        "//pw_async2:poll",
+    ],
+)
+
+cc_library(
+    name = "simple_allocator",
+    srcs = ["simple_allocator.cc"],
+    hdrs = ["public/pw_multibuf/simple_allocator.h"],
+    features = ["-conversion_warnings"],
+    implementation_deps = ["//pw_assert:check"],
+    strip_include_prefix = "public",
+    deps = [
+        ":allocator",
+        ":config",
+        ":multibuf_v1",
+        "//pw_allocator:allocator",
+        "//pw_bytes:alignment",
+        "//pw_containers:intrusive_list",
+    ],
+)
+
+pw_cc_test(
+    name = "simple_allocator_test",
+    srcs = ["simple_allocator_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":simple_allocator",
+        ":v1_test_config",
+        "//pw_allocator:null_allocator",
+        "//pw_allocator:testing",
+        "//pw_async2:dispatcher",
+        "//pw_async2:poll",
+    ],
+)
+
+cc_library(
+    name = "stream",
+    srcs = ["stream.cc"],
+    hdrs = ["public/pw_multibuf/stream.h"],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        ":multibuf_v1",
+        "//pw_status",
+        "//pw_stream",
+    ],
+)
+
+pw_cc_test(
+    name = "stream_test",
+    srcs = ["stream_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":internal_test_utils",
+        ":multibuf_v1",
+        ":stream",
+        ":v1_test_config",
+    ],
+)
+
+cc_library(
+    name = "from_span",
+    srcs = ["from_span.cc"],
+    hdrs = ["public/pw_multibuf/from_span.h"],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        ":multibuf_v1",
+        "//pw_allocator:allocator",
+        "//pw_function",
+    ],
+)
+
+pw_cc_test(
+    name = "from_span_test",
+    srcs = ["from_span_test.cc"],
+    features = ["-conversion_warnings"],
+    deps = [
+        ":from_span",
+        ":v1_test_config",
+        "//pw_allocator:testing",
+    ],
+)
+
+cc_library(
+    name = "testing",
+    testonly = True,
+    hdrs = ["public/pw_multibuf/simple_allocator_for_test.h"],
+    features = ["-conversion_warnings"],
+    strip_include_prefix = "public",
+    deps = [
+        ":config",
+        ":simple_allocator",
+        "//pw_allocator:synchronized_allocator",
+        "//pw_allocator:testing",
+        "//pw_assert:assert",
+        "//pw_sync:mutex",
+    ],
+)
+
+cc_library(
+    name = "internal_test_utils",
+    testonly = True,
+    hdrs = ["pw_multibuf_private/test_utils.h"],
+    features = ["-conversion_warnings"],
+    includes = ["pw_multibuf_private"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":config",
+        ":header_chunk_region_tracker",
+        ":multibuf_v1",
+        "//pw_allocator:testing",
+        "//pw_assert:check",
+        "//pw_bytes",
+        "//pw_status",
+    ],
+)
+
+## MultiBuf v2
+
+cc_library(
+    name = "v2_config",
+    defines = [
+        "PW_MULTIBUF_VERSION=PW_MULTIBUF_V2",
+    ],
+)
+
+cc_library(
+    name = "iterators",
+    hdrs = [
+        "public/pw_multibuf/internal/byte_iterator.h",
+        "public/pw_multibuf/internal/chunk_iterator.h",
+        "public/pw_multibuf/internal/entry.h",
+    ],
+    strip_include_prefix = "public",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":chunk",
+        "//pw_assert:assert",
+        "//pw_bytes",
+        "//pw_containers:dynamic_deque",
+        "//pw_preprocessor",
+    ],
+)
+
+pw_cc_test(
+    name = "chunk_iterator_test",
+    srcs = [
+        "chunk_iterator_test.cc",
+    ],
+    deps = [
+        ":iterator_testing",
+        ":iterators",
+    ],
+)
+
+pw_cc_test(
+    name = "byte_iterator_test",
+    srcs = [
+        "byte_iterator_test.cc",
+    ],
+    deps = [
+        ":iterator_testing",
+        ":iterators",
+    ],
+)
+
+cc_library(
+    name = "iterator_testing",
+    testonly = True,
+    hdrs = [
+        "public/pw_multibuf/internal/iterator_testing.h",
+    ],
+    strip_include_prefix = "public",
+    deps = [
+        ":iterators",
+        "//pw_allocator:bump_allocator",
+        "//pw_unit_test",
+    ],
+)
+
+cc_library(
+    name = "multibuf_v2",
+    srcs = ["multibuf_v2.cc"],
+    hdrs = [
+        "public/pw_multibuf/multibuf_v2.h",
+        "public/pw_multibuf/observer.h",
+        "public/pw_multibuf/properties.h",
+    ],
+    implementation_deps = [
+        "//pw_assert:check",
+    ],
+    strip_include_prefix = "public",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":iterators",
+        "//pw_allocator",
+        "//pw_bytes",
+        "//pw_containers:dynamic_deque",
+    ],
+)
+
+pw_cc_test(
+    name = "multibuf_v2_test",
+    srcs = [
+        "multibuf_v2_test.cc",
+    ],
+    deps = [
+        ":chunk",
+        ":iterators",
+        ":multibuf_v2",
+        "//pw_allocator:chunk_pool",
+        "//pw_allocator:testing",
+        "//pw_assert:check",
+        "//pw_bytes",
+        "//pw_compilation_testing:negative_compilation_testing",
+        "//pw_result",
+        "//pw_status",
+    ],
+)
+
+## Docs
+
+filegroup(
+    name = "doxygen",
+    srcs = [
+        "public/pw_multibuf/allocator.h",
+        "public/pw_multibuf/allocator_async.h",
+        "public/pw_multibuf/chunk.h",
+        "public/pw_multibuf/config.h",
+        "public/pw_multibuf/from_span.h",
+        "public/pw_multibuf/header_chunk_region_tracker.h",
+        "public/pw_multibuf/multibuf_v1.h",
+        "public/pw_multibuf/multibuf_v2.h",
+        "public/pw_multibuf/observer.h",
+        "public/pw_multibuf/properties.h",
+        "public/pw_multibuf/simple_allocator.h",
+        "public/pw_multibuf/simple_allocator_for_test.h",
+        "public/pw_multibuf/single_chunk_region_tracker.h",
+        "public/pw_multibuf/stream.h",
+    ],
+)
+
+sphinx_docs_library(
+    name = "docs",
+    srcs = [
+        "code_size.rst",
+        "docs.rst",
+        "//pw_multibuf/size_report:multibuf_size_report",
+    ],
+    prefix = "pw_multibuf/",
+    target_compatible_with = incompatible_with_mcu(),
+)
