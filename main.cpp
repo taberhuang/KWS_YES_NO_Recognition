@@ -297,10 +297,26 @@ int main(int argc, char* argv[]) {
     const char* expected_label = nullptr;
     
     // Simple filename-based expectation check
-    if (strstr(wav_file, "yes") != nullptr) {
-        expected_label = "yes";
-    } else if (strstr(wav_file, "no") != nullptr) {
-        expected_label = "no";
+    if (strstr(wav_file, "zero") != nullptr) {
+        expected_label = "zero";
+    } else if (strstr(wav_file, "one") != nullptr) {
+        expected_label = "one";
+    } else if (strstr(wav_file, "two") != nullptr) {
+        expected_label = "two";
+    } else if (strstr(wav_file, "three") != nullptr) {
+        expected_label = "three";
+    } else if (strstr(wav_file, "four") != nullptr) {
+        expected_label = "four";
+    } else if (strstr(wav_file, "five") != nullptr) {
+        expected_label = "five";
+    } else if (strstr(wav_file, "six") != nullptr) {
+        expected_label = "six";
+    } else if (strstr(wav_file, "seven") != nullptr) {
+        expected_label = "seven";
+    } else if (strstr(wav_file, "eight") != nullptr) {
+        expected_label = "eight";
+    } else if (strstr(wav_file, "nine") != nullptr) {
+        expected_label = "nine";
     } else if (strstr(wav_file, "silence") != nullptr) {
         expected_label = "silence";
     }

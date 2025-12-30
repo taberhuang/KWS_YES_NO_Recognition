@@ -25,7 +25,7 @@ limitations under the License.
 #define kFeatureDurationMs 30
 
 // Model output categories
-#define kCategoryCount 4
+#define kCategoryCount 12
 extern const char* kCategoryLabels[kCategoryCount];
 
 // Audio processing settings

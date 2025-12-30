@@ -10,12 +10,20 @@
  #include <math.h>
  
  // Category labels for model output
- const char* kCategoryLabels[kCategoryCount] = {
-     "silence",
-     "unknown", 
-     "yes",
-     "no"
- };
+const char* kCategoryLabels[kCategoryCount] = {
+    "silence",
+    "unknown",
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine"
+};
  
  // Helper function to read a 4-byte chunk ID
  static int ReadChunkId(FILE* file, char* chunk_id) {
