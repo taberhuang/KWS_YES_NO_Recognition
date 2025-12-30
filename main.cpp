@@ -20,7 +20,7 @@
 #include "tensorflow/lite/micro/micro_log.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/core/c/common.h"
-
+#include "tensorflow/lite/micro/kernels/quantize.h"
 // Model data headers
 #include "audio_preprocessor_int8_model_data.h"
 #include "micro_speech_quantized_model_data.h"
@@ -53,7 +53,7 @@ using Features = int8_t[kFeatureCount][kFeatureSize];
 Features g_features;
 
 // Operation resolver type definitions
-using MicroSpeechOpResolver = tflite::MicroMutableOpResolver<4>;
+using MicroSpeechOpResolver = tflite::MicroMutableOpResolver<6>;
 using AudioPreprocessorOpResolver = tflite::MicroMutableOpResolver<18>;
 
 // Register operations for MicroSpeech model
@@ -61,7 +61,9 @@ TfLiteStatus RegisterMicroSpeechOps(MicroSpeechOpResolver& op_resolver) {
     TF_LITE_ENSURE_STATUS(op_resolver.AddReshape());
     TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
     TF_LITE_ENSURE_STATUS(op_resolver.AddDepthwiseConv2D());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddConv2D());  // 添加 CONV_2D 支持
     TF_LITE_ENSURE_STATUS(op_resolver.AddSoftmax());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddQuantize());
     return kTfLiteOk;
 }
 
@@ -170,6 +172,21 @@ TfLiteStatus GenerateFeatures(const int16_t* audio_data,
     }
     
     printf("Generated %zu features\n", feature_index);
+    
+    // 调试：打印特征统计信息
+    int8_t min_val = 127, max_val = -128;
+    int32_t sum = 0;
+    for (size_t i = 0; i < kFeatureCount; i++) {
+        for (size_t j = 0; j < kFeatureSize; j++) {
+            int8_t val = (*features_output)[i][j];
+            if (val < min_val) min_val = val;
+            if (val > max_val) max_val = val;
+            sum += val;
+        }
+    }
+    printf("Feature stats: min=%d, max=%d, mean=%.2f\n", 
+           min_val, max_val, (float)sum / kFeatureElementCount);
+    
     return kTfLiteOk;
 }
 
@@ -178,6 +195,7 @@ TfLiteStatus RunMicroSpeechClassifier(const Features& features, const char* expe
     printf("\n=== Running MicroSpeech Classifier ===\n");
     
     // Load the MicroSpeech model
+    printf("Loading model, size: %zu bytes\n", micro_speech_quantized_tflite_len);
     const tflite::Model* model = tflite::GetModel(micro_speech_quantized_tflite);
     if (model->version() != TFLITE_SCHEMA_VERSION) {
         printf("ERROR: MicroSpeech model schema version mismatch\n");
@@ -202,9 +220,20 @@ TfLiteStatus RunMicroSpeechClassifier(const Features& features, const char* expe
     TfLiteTensor* input = interpreter.input(0);
     if (input == nullptr) return kTfLiteError;
     
-    if (kFeatureElementCount != input->dims->data[input->dims->size - 1]) {
-        printf("ERROR: Input size mismatch. Expected %d, got %d\n",
-               kFeatureElementCount, input->dims->data[input->dims->size - 1]);
+    // 打印模型实际的输入形状
+    printf("Model input shape: [");
+    int total_input_size = 1;
+    for (int i = 0; i < input->dims->size; i++) {
+        total_input_size *= input->dims->data[i];
+        printf("%d", input->dims->data[i]);
+        if (i < input->dims->size - 1) printf(", ");
+    }
+    printf("] = %d elements\n", total_input_size);
+    printf("Expected feature size: %d elements\n", kFeatureElementCount);
+    
+    if (kFeatureElementCount != total_input_size) {
+        printf("ERROR: Input size mismatch. Expected %d, model wants %d\n",
+               kFeatureElementCount, total_input_size);
         return kTfLiteError;
     }
     

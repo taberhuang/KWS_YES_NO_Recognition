@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(kws_yesno VERSION 1.0.0 LANGUAGES C CXX)
+project(kws_0_9 VERSION 1.0.0 LANGUAGES C CXX)
 
 # Set C++ standard - match working config
 set(CMAKE_CXX_STANDARD 17)
@@ -124,7 +124,10 @@ set(TFLM_KERNEL_SOURCES
     tflite-micro/tensorflow/lite/micro/kernels/div.cc
     tflite-micro/tensorflow/lite/micro/kernels/fully_connected.cc
     tflite-micro/tensorflow/lite/micro/kernels/depthwise_conv.cc
+    tflite-micro/tensorflow/lite/micro/kernels/conv.cc
     tflite-micro/tensorflow/lite/micro/kernels/softmax.cc
+    tflite-micro/tensorflow/lite/micro/kernels/quantize.cc
+    tflite-micro/tensorflow/lite/micro/kernels/quantize_common.cc
     tflite-micro/tensorflow/lite/micro/kernels/elementwise.cc
 
     # Kernel Common Functions
